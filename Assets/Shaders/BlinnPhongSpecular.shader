@@ -1,6 +1,6 @@
-﻿Shader "Custom/PhongSpecular" {
+﻿Shader "Custom/BlinnPhongSpecular" {
 	Properties {
-		_MainTint ("Maint tint", Color) = (1,1,1,1)
+		_MainTint ("Main tint", Color) = (1,1,1,1)
 		_MainTex ("Albedo (RGB)", 2D) = "white" {}
 		_SpecularColor("Specular color", Color) = (1,1,1,1)
 		_SpecularPower("Specular power", Range(0,30)) = 1
@@ -10,7 +10,7 @@
 		LOD 200
 		
 		CGPROGRAM
-		#pragma surface surf Phong
+		#pragma surface surf CustomBlinnPhong
 
 		// Use shader model 3.0 target, to get nicer looking lighting
 		#pragma target 3.0
@@ -39,19 +39,19 @@
 			o.Alpha = c.a;
 		}
 		
-		fixed4 LightingPhong (SurfaceOutput s, fixed3 lightDir, half3 viewDir, fixed atten)
+		fixed4 LightingCustomBlinnPhong (SurfaceOutput s, fixed3 lightDir, half3 viewDir, fixed atten)
 		{
 		    //Reflection
-		    float NdotL = dot(s.Normal, lightDir);
-		    float3 reflectionVector = normalize(2.0 * s.Normal * NdotL - lightDir);
+		    float NdotL = max(0, dot(s.Normal, lightDir));
 		    
 		    //Specular
-		    float spec = pow(max(0, dot(reflectionVector, viewDir)), _SpecularPower);
-		    float3 finalSpec = _SpecularColor * spec;
+		    float3 halfVector = normalize(lightDir + viewDir);
+		    float NdotH = max(0, dot(s.Normal, halfVector));
+		    float spec = pow(NdotH, _SpecularPower) * _SpecularColor;
 		    
 		    //Final effect
 		    fixed4 c;
-		    c.rgb = ((s.Albedo * _LightColor0.rgb * max(0, NdotL)) + (_LightColor0.rgb * finalSpec)) * (atten);
+		    c.rgb = (s.Albedo * _LightColor0.rgb * atten) + (_LightColor0.rgb * _SpecularColor.rgb * spec);
 		    c.a = s.Alpha;
 		    
 		    return c;
